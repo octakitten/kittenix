@@ -13,13 +13,17 @@ let
   nixvim = import (fetchGit {
       url = "https://github.com/nix-community/nixvim";
   });
-
+  
+  catppuccin = import (fetchGit {
+    url = "github:catppuccin/nix";
+  });
 in
 {
   imports =
     [ # Include the results of the hardware scan.
       ./hardware-configuration.nix
       nixvim.nixosModules.nixvim
+      catppuccin.nixosModules.catppuccin
     ];
 
   nixpkgs.config = {
@@ -35,8 +39,8 @@ in
   boot.loader.grub.device = "/dev/sda";
   boot.loader.grub.useOSProber = true;
 
-  networking.hostName = "nixos"; # Define your hostname.
-  # networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
+  networking.hostName = "kittenixos"; # Define your hostname.
+  networking.wireless.enable = true;  # Enables wireless support via wpa_supplicant.
 
   # Configure network proxy if necessary
   # networking.proxy.default = "http://user:password@proxy:port/";
@@ -44,6 +48,15 @@ in
 
   # Enable networking
   networking.networkmanager.enable = true;
+
+  hardware.bluetooth.enable = true;
+  hardware.bluetooth.powerOnBoot = true;
+
+  system.autoUpgrade = {
+    enable = true;
+    operation = "boot";
+    dates = "weekly";
+  };
 
   # Set your time zone.
   time.timeZone = "America/New_York";
@@ -68,12 +81,25 @@ in
 
   # Enable the GNOME Desktop Environment.
   services.xserver.displayManager.gdm.enable = true;
-  services.xserver.desktopManager.gnome.enable = true;
+  services.xserver.desktopManager.gnome = {
+    enable = true;
+    };
 
   # Configure keymap in X11
   services.xserver = {
     layout = "us";
     xkbVariant = "";
+    videoDrivers = ["nvidia"];
+  };
+
+  hardware.nvidia = {
+    modesetting.enable = true;
+    nvidiaSettings = true;
+    package = config.boot.kernelPackages.nvidiaPackages.stable;
+  };
+
+  hardware.opengl = {
+    enable = true;
   };
 
   # Enable CUPS to print documents.
@@ -88,11 +114,27 @@ in
     alsa.support32Bit = true;
     pulse.enable = true;
     # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
+    jack.enable = true;
 
     # use the example session manager (no others are packaged yet so this is enabled by default,
     # no need to redefine it in your config for now)
     #media-session.enable = true;
+  };
+
+  # sound and audio packages
+  environment.systemPackages = with pkgs; [
+    pamixer
+    pavucontrol
+  ];
+
+  services.flatpak.enable = true;
+  # TODO: double check whether this works properly
+  services.flatpak-repo = {
+    wantedBy = "multi-user.target" ];
+    path = [ pkgs.flatpak ];
+    script = ''
+      flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    '';
   };
 
   # Enable touchpad support (enabled default in most desktopManager).
@@ -108,17 +150,110 @@ in
     ];
   };
 
-  # Install firefox.
-  programs.firefox.enable = true;
+  # set theme here
+  catppuccin = {
+    enable = true;
+    flavor = "mocha";
+  };
 
+  #exclude gnome packages here
+  environment.gnome.excludePackages = (with pkgs; [
+    gnome-tour
+    ]) ++ (with pkgs.gnome; [
+    gnome-music
+    geary
+    totem
+    tali
+    iagno
+    hitori
+    atomix
+    ]);
+  
+  #configure gnome settings
+  dconf.settings = {
+    enable = true;
+    "org/gnome/desktop/interface" = {
+      clock-show-weekday = true;
+    };
+  };
+
+  # general purpose packages and apps
   environment.systemPackages = with pkgs; [
-    neovim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
+    # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
     wget
     thunderbird
     discord
-    git
+    firefox
+    spotify
+    obsidian
+    libreoffice-qt
+    hunspell
+    hunspellDicts.en_US
+    # TODO: wish-list of packages that i need to look into:
+    #appimage
+    #vscode
+    #parsec
+    #manuskript
+    #krita
+    #gnu-octave
+    #emacs
+    #huion-drivers
+    #qbittorent
+    #vesktop
+  ];
+
+  programs.mpv = {
+    enable = true;
+    package = (
+      pkgs.mpv-unwrapped.wrapper {
+        mpv = pkgs.mpv-unwrapped.override {
+          waylandSupport = true;
+        };
+      }
+    );
+    config = {
+      profile = "high-quality";
+      ytdl-format = "bestvideo+bestaudio";
+    };
+  };
+
+  # fonts
+  fonts.packages = with pkgs; [
+  (nerdfonts.override { fonts = [ "ComicShannsMono" ]; })
+  ];
+
+  # desktop environment
+  environment.systemPackages = with pkgs; [
+    pyprland
+    hyprpicker
+    hyprcursor
+    hyprlock
+    hypridle
+    hyprpaper
+    cool-retro-term
+    starship
+    helix
+    qutebrowser
+    zathura
+    imv
   ];
   
+  # coding-relevant
+  environment.systemPackages = with pkgs; [
+    gcc
+    clang
+    neovim
+    git
+    vscodium
+    (vscode-with-extensions.override {
+      vscode = vscodium;
+      vscodeExtensions = with vscode-extensions; [
+      # TODO: put in some vscode extensions
+      ] ++ pkgs.vscode-utils.extensionsFromVscodeMarketplace [ {} ];
+      ];
+    })
+  ];
+
   programs.nixvim = {
     enable = true;
     colorschemes.catppuccin = {
@@ -155,6 +290,7 @@ in
       helm = { enable = true; };
       lsp = {
         enable = true;
+	# TODO: fix the lsp package options somehow
 /*        servers = {
           # bashls.enable = true;
           clangd.enable = true;
@@ -192,6 +328,29 @@ in
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
+  # games gaming section
+  programs.steam = {
+    enable = true;
+  };
+
+  environment.systemPackages = with pkgs; [
+    wineWoWPackages.stable
+    wine
+    wineWowPackages.staging
+    winetricks
+    wineWowPackages.waylandFull
+    lutris
+  ];
+
+  environment.systemPackages = [
+    (pkgs.wrapOBS {
+      plugins = with pkgs.obs-studio-plugins; [
+        wlrobs
+	obs-backgroundremoval
+	obs-pipewire-audio-capture
+      ];
+    })
+  ];
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
@@ -213,7 +372,7 @@ in
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
+   networking.firewall.enable = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
