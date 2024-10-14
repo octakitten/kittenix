@@ -3,7 +3,7 @@
 # and in the NixOS manual (accessible by running ‘nixos-help’).
  
 { config, pkgs, inputs, ... }:
- 
+/* 
 let
   unstableTarball = (
     fetchTarball {
@@ -17,8 +17,9 @@ let
   catppuccin = import (fetchGit {
     url = "github:catppuccin/nix";
   });
-*/
+
 in
+*/
 {
   imports =
     [ # Include the results of the hardware scan.
@@ -28,7 +29,7 @@ in
       catppuccin.nixosModules.catppuccin
 */
     ];
- 
+/* 
   nixpkgs.config = {
     packageOverrides = pkgs: {
       unstable = import unstableTarball {
@@ -36,7 +37,7 @@ in
       };
     };
   };
- 
+*/ 
   # Bootloader.
   boot.loader.grub.enable = true;
   boot.loader.grub.device = "/dev/sda";
