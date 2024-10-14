@@ -9,7 +9,7 @@ let
     fetchTarball {
       url = "https://github.com/NixOS/nixpkgs/archive/nixos-unstable.tar.gz";
     });
-/* 
+/*
   nixvim = import (fetchGit {
       url = "https://github.com/nix-community/nixvim";
   });
@@ -201,7 +201,7 @@ in
     neovim
     gitAndTools.gitFull
     python312Full
-    vscodium
+    vscode
 /*
     (vscode-with-extensions.override {
       vscode = vscodium;
