@@ -1,2 +1,2 @@
 # kittenix
-Just a dumping ground for various NixOS-related stuff.
+Just a Nix package for a cute Neovim config.
