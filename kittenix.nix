@@ -15,8 +15,8 @@
 
 let
  
-  project_name = "kittenix";
-  project_ver = "0.0.1b03.3";
+  project_name = "kittenvim";
+  project_ver = "0.0.1b05";
   buildInputs = [
    neovim
    vimPlugins.lazy-nvim
@@ -25,17 +25,17 @@ let
    bash
    direnv
   ];
-  install_dir = "~/.cache/kittenvim";
-
+  install_dir = "$HOME/.config/kittenvim";
 
   buildPhase = ''
    runHook preInstall
-   KITTENVIM_DIR="~/.cache/kittenvim"
+   make clean
+   make
    runHook postInstall
   '';
 
   shellHook = ''
-    $SHELL $KITTENVIM_DIR/uppies.sh $KITTENVIM_DIR
+    $SHELL ${install_dir}/uppies.sh
   '';
 
 in
@@ -47,7 +47,7 @@ stdenv.mkDerivation {
  src = fetchFromGitHub {
     owner = "octakitten";
     repo = "kittenvim";
-    rev = "v0.0.1b03";
+    rev = "v0.0.1b04";
     name = project_name;
     sha256 = "CADgI9g17gMkw8VhI0LSLYg10U3XyyX3vKGnJStW9o8=";
   };
